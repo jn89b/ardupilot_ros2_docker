@@ -1,0 +1,20 @@
+services:
+  ap-dds-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: local/ardupilot-ros2-dds-agent:humble
+    container_name: ardupilot-ros2-dds-agent
+
+    # Linux only. This lets host SITL directly send AP_DDS to 127.0.0.1:2019.
+    network_mode: host
+
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      DDS_AGENT_PORT: ${DDS_AGENT_PORT:-2019}
+
+    restart: unless-stopped
+
+    stdin_open: true
+    tty: true
