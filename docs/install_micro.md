@@ -1,16 +1,53 @@
-# Install Micro-XRCE-DDS-Gen for ArduPilot SITL
+# Install Micro-XRCE-DDS-Gen for ArduPilot SITL Running Outside Docker
+
+> **Important:** This setup assumes ArduPilot SITL is built and run directly on the host machine, not inside Docker.
+>
+> `microxrceddsgen` must be installed on the same machine and available in the same shell environment where you run:
+>
+> ```bash
+> ./waf configure --board sitl --enable-DDS
+> ```
+>
+> Installing the generator only inside a Docker container will not help a host-side SITL build.
+
+## 1. Set project paths on the host machine
+
+Run these commands in your normal host terminal:
 
 ```bash
-# Your existing project root.
-export PROJECT_ROOT=/home/justin/coding_projects/ros2_trajectory_docker
+export PROJECT_ROOT=/home/mide/ardupilot_ros2_docker
+export ARDUPILOT_DIR="$PROJECT_ROOT/ardupilot"
 export GEN_DIR="$PROJECT_ROOT/Micro-XRCE-DDS-Gen"
+```
 
-# Install Git and Java 17.
-# Java 17 avoids the Gradle 7.6 + Java 21 error you saw earlier.
+Verify that the ArduPilot checkout exists:
+
+```bash
+ls "$ARDUPILOT_DIR"
+```
+
+You should see directories and files such as:
+
+```text
+ArduCopter
+ArduPlane
+Tools
+libraries
+waf
+```
+
+---
+
+## 2. Install Git and Java 17 on the host
+
+```bash
 sudo apt update
 sudo apt install -y git openjdk-17-jdk
+```
 
-# Use Java 17 explicitly for this shell.
+Set Java 17 explicitly for the current shell:
+
+```bash
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 export PATH="$JAVA_HOME/bin:$PATH"
 
@@ -20,9 +57,15 @@ javac -version
 
 Both commands should report Java 17.
 
+> Java 17 is recommended because Gradle 7.6 can fail when old caches were built with Java 21 or another incompatible version.
+
+---
+
+## 3. Clone the ArduPilot-compatible Micro-XRCE-DDS generator
+
+ArduPilot DDS builds use the ArduPilot fork of `Micro-XRCE-DDS-Gen` on version `v4.7.0`.
+
 ```bash
-# Clone the required ArduPilot-compatible generator version.
-# If it is already cloned, update it and its submodules instead.
 if [ -d "$GEN_DIR/.git" ]; then
     git -C "$GEN_DIR" fetch --tags
     git -C "$GEN_DIR" checkout v4.7.0
@@ -34,30 +77,56 @@ else
         https://github.com/ardupilot/Micro-XRCE-DDS-Gen.git \
         "$GEN_DIR"
 fi
+```
 
+---
+
+## 4. Build `microxrceddsgen`
+
+```bash
 cd "$GEN_DIR"
 
-# Remove the cached Gradle 7.6 scripts previously compiled with Java 21.
+# Remove Gradle 7.6 cache files that may have been built using another Java version.
 rm -rf "$HOME/.gradle/caches/7.6" "$HOME/.gradle/daemon/7.6"
 
 ./gradlew --stop || true
 ./gradlew clean assemble
 ```
 
-Add Java 17 and the generator permanently to your shell environment:
+This creates the `microxrceddsgen` wrapper script inside:
+
+```text
+/home/mide/ardupilot_ros2_docker/Micro-XRCE-DDS-Gen/scripts/
+```
+
+---
+
+## 5. Add `microxrceddsgen` to your host PATH
+
+For the current terminal only:
+
+```bash
+export PATH="$GEN_DIR/scripts:$PATH"
+```
+
+To make this persistent across new host terminals:
 
 ```bash
 grep -qF "# ArduPilot Micro-XRCE-DDS-Gen" ~/.bashrc || cat >> ~/.bashrc <<'EOF'
 
-# ArduPilot Micro-XRCE-DDS-Gen
+# ArduPilot Micro-XRCE-DDS-Gen for host-side SITL builds
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-export PATH="$JAVA_HOME/bin:$HOME/coding_projects/ros2_trajectory_docker/Micro-XRCE-DDS-Gen/scripts:$PATH"
+export PATH="$JAVA_HOME/bin:$HOME/ardupilot_ros2_docker/Micro-XRCE-DDS-Gen/scripts:$PATH"
 EOF
 
 source ~/.bashrc
 ```
 
-Verify installation:
+---
+
+## 6. Verify the generator is available
+
+Run:
 
 ```bash
 which microxrceddsgen
@@ -68,15 +137,75 @@ microxrceddsgen -version
 Expected path:
 
 ```text
-/home/justin/coding_projects/ros2_trajectory_docker/Micro-XRCE-DDS-Gen/scripts/microxrceddsgen
+/home/mide/ardupilot_ros2_docker/Micro-XRCE-DDS-Gen/scripts/microxrceddsgen
 ```
 
-Then rebuild DDS-enabled Plane SITL:
+If `which microxrceddsgen` returns nothing, check:
 
 ```bash
-cd /home/justin/coding_projects/ros2_trajectory_docker/ardupilot
+echo "$PATH"
+ls -la "$GEN_DIR/scripts"
+```
+
+Then re-run:
+
+```bash
+export PATH="$GEN_DIR/scripts:$PATH"
+```
+
+---
+
+## 7. Build DDS-enabled ArduPilot SITL on the host
+
+Build Plane SITL:
+
+```bash
+cd "$ARDUPILOT_DIR"
 
 ./waf distclean
 ./waf configure --board sitl --enable-DDS
 ./waf plane -j"$(nproc)"
 ```
+
+Build Copter SITL instead:
+
+```bash
+cd "$ARDUPILOT_DIR"
+
+./waf distclean
+./waf configure --board sitl --enable-DDS
+./waf copter -j"$(nproc)"
+```
+
+> The capitalization is usually accepted either way, but use `--enable-DDS` to match ArduPilot documentation and build examples.
+
+---
+
+## 8. Confirm DDS was detected during configuration
+
+After running `./waf configure`, inspect the config log:
+
+```bash
+grep -iE "dds|microxrce" "$ARDUPILOT_DIR/build/config.log"
+```
+
+You should no longer see:
+
+```text
+Could not find the program ['microxrceddsgen']
+```
+
+You should see output indicating that `microxrceddsgen` was found and DDS support was enabled.
+
+---
+
+## 9. Docker note
+
+Your ROS 2 nodes, MAVROS, Micro XRCE-DDS Agent, or other tooling can still run inside Docker.
+
+However, because SITL is built outside Docker:
+
+* `microxrceddsgen` must be installed on the host.
+* The host terminal must have `microxrceddsgen` in `PATH`.
+* The host must run the DDS-enabled `./waf configure` and build command.
+* Docker does not need the generator unless you later decide to build ArduPilot SITL inside Docker.

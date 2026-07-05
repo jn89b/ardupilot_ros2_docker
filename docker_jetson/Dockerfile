@@ -83,7 +83,8 @@ RUN "${VENV_PATH}/bin/python" -m pip install --no-cache-dir --upgrade \
     pymavlink \
     requests \
     mock \
-    MAVProxy
+    MAVProxy \
+    netifaces
 
 RUN mkdir -p /__w/ardupilot/ardupilot \
     && git config --global --add safe.directory /__w/ardupilot/ardupilot \
