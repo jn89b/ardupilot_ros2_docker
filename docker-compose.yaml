@@ -2,19 +2,38 @@ services:
   ap-dds-agent:
     build:
       context: .
+      # Use Dockerfile if you saved it with that exact name.
+      # Otherwise change this to Dockerfile.ardupilot-dds.
       dockerfile: Dockerfile
 
-    image: local/ardupilot-ros2-dds-agent:humble
+      args:
+        BASE_IMAGE: sandia_container:l4t-r36.4.7
+
+    image: local/ardupilot-ros2-dds-agent:jetson
     container_name: ardupilot-ros2-dds-agent
 
-    # Linux only. This lets host SITL directly send AP_DDS to 127.0.0.1:2019.
+    # Lets host SITL send XRCE-DDS UDP traffic to 127.0.0.1:2019.
     network_mode: host
+    ipc: host
 
     environment:
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       DDS_AGENT_PORT: ${DDS_AGENT_PORT:-2019}
 
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+
+    command:
+      - bash
+      - -lc
+      - >
+        source /opt/ros/humble/install/setup.bash &&
+        source /opt/micro_ros_agent_ws/install/setup.bash &&
+        exec ros2 run micro_ros_agent micro_ros_agent udp4 -p "$${DDS_AGENT_PORT}"
+
     restart: unless-stopped
+    init: true
 
     stdin_open: true
     tty: true
