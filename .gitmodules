@@ -1,0 +1,3 @@
+[submodule "ardupilot_dev_docker"]
+	path = ardupilot_dev_docker
+	url = https://github.com/ArduPilot/ardupilot_dev_docker.git

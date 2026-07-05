@@ -1,0 +1,33 @@
+services:
+  ap-dds-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.ardupilot-dds
+      args:
+        BASE_IMAGE: sandia_container:l4t-r36.4.7
+
+    image: local/ardupilot-ros2-dds-agent:jetson
+    container_name: ardupilot-ros2-dds-agent
+
+    # Lets host SITL, hardware tools, and this container share 127.0.0.1:2019.
+    network_mode: host
+    ipc: host
+
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      DDS_AGENT_PORT: ${DDS_AGENT_PORT:-2019}
+
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+
+    command:
+      - bash
+      - -lc
+      - >
+        exec MicroXRCEAgent udp4 -p "$${DDS_AGENT_PORT}"
+
+    restart: unless-stopped
+
+    stdin_open: true
+    tty: true
