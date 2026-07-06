@@ -1,3 +1,9 @@
 [submodule "ardupilot_dev_docker"]
 	path = ardupilot_dev_docker
 	url = https://github.com/ArduPilot/ardupilot_dev_docker.git
+[submodule "traj_estimation"]
+	path = traj_estimation
+	url = https://github.com/jn89b/traj_estimation.git
+[submodule "traj_estimation_msgs"]
+	path = traj_estimation_msgs
+	url = https://github.com/jn89b/traj_estimation_msgs.git
