@@ -1,76 +1,73 @@
-COMMON_SETUP=$(cat <<EOF
-source /opt/ros/humble/setup.bash 2>/dev/null || true
-source /opt/ros/humble/install/setup.bash 2>/dev/null || true
+#!/bin/bash
 
-if [[ -f /opt/micro_ros_agent_ws/install/setup.bash ]]; then
-    source /opt/micro_ros_agent_ws/install/setup.bash
-fi
+SESSION="traj_estimation"
+WORKSPACE="/root/workspace"
 
-if ! cd $(printf '%q' "${WORKSPACE}"); then
-    echo "ERROR: Could not enter workspace: ${WORKSPACE}"
-    exec bash -i
-fi
+SEQUENCE_LENGTH=30
+MODEL_TYPE="lstm"
+DEVICE="cuda"
 
-if [[ -f install/setup.bash ]]; then
-    source install/setup.bash
-fi
-EOF
-)
+# Change this per flight if you want a named log folder.
+RUN_NAME="flight_$(date +%Y%m%d_%H%M%S)"
 
-CHECKPOINT_ARG=""
-if [[ -n "${MODEL_CHECKPOINT}" ]]; then
-    CHECKPOINT_ARG="-p model_checkpoint:=$(printf '%q' "${MODEL_CHECKPOINT}")"
-fi
+# Kill the old session so you start clean.
+tmux has-session -t "$SESSION" 2>/dev/null && tmux kill-session -t "$SESSION"
 
-INTERPOLATE_CMD="${COMMON_SETUP}
+# Create the session and split into three panes.
+tmux new-session -d -s "$SESSION" -n estimation
 
-echo 'Starting interpolate node...'
-echo
+# Pane 0 and pane 1: side-by-side.
+tmux split-window -h -t "$SESSION:0"
 
-set +e
-ros2 run traj_estimation ${INTERPOLATE_EXECUTABLE}
-exit_code=\$?
-set -e
+# Split the right pane vertically to create pane 2.
+tmux split-window -v -t "$SESSION:0.1"
 
-echo
-echo '=============================================='
-echo \"interpolate node exited with code \$exit_code.\"
-echo 'Keeping this tmux pane open for debugging.'
-echo 'Press Ctrl+D or type exit when finished.'
-echo '=============================================='
-exec bash -i
-"
+# Pane 0: interpolation node.
+tmux send-keys -t "$SESSION:0.0" \
+  "source /opt/ros/humble/setup.bash 2>/dev/null || true; \
+   source /opt/ros/humble/install/setup.bash 2>/dev/null || true; \
+   source $WORKSPACE/install/setup.bash 2>/dev/null || true; \
+   cd $WORKSPACE; \
+   ros2 run traj_estimation interpolate_node.py; \
+   echo; \
+   echo 'interpolate_node exited. Pane will stay open.'; \
+   exec bash" C-m
 
-PREDICTION_CMD="${COMMON_SETUP}
+# Pane 1: RNN prediction node.
+tmux send-keys -t "$SESSION:0.1" \
+  "source /opt/ros/humble/setup.bash 2>/dev/null || true; \
+   source /opt/ros/humble/install/setup.bash 2>/dev/null || true; \
+   source $WORKSPACE/install/setup.bash 2>/dev/null || true; \
+   cd $WORKSPACE; \
+   ros2 run traj_estimation prediction_node.py --ros-args \
+     -p sequence_length:=$SEQUENCE_LENGTH \
+     -p model_type:=$MODEL_TYPE \
+     -p device:=$DEVICE; \
+   echo; \
+   echo 'prediction_node exited. Pane will stay open.'; \
+   exec bash" C-m
 
-echo 'Starting prediction node...'
-echo
+# Pane 2: real-time JSONL logger.
+tmux send-keys -t "$SESSION:0.2" \
+  "source /opt/ros/humble/setup.bash 2>/dev/null || true; \
+   source /opt/ros/humble/install/setup.bash 2>/dev/null || true; \
+   source $WORKSPACE/install/setup.bash 2>/dev/null || true; \
+   cd $WORKSPACE; \
+   ros2 run traj_estimation logger_node.py --ros-args \
+     -p run_name:=$RUN_NAME \
+     -p queue_size:=10000 \
+     -p batch_size:=256 \
+     -p flush_interval_s:=0.25 \
+     -p fsync_interval_s:=1.0; \
+   echo; \
+   echo 'realtime_logger_node exited. Pane will stay open.'; \
+   exec bash" C-m
 
-set +e
-ros2 run traj_estimation ${PREDICTION_EXECUTABLE} --ros-args \
-    -p sequence_length:=${SEQUENCE_LENGTH} \
-    -p model_type:=${MODEL_TYPE} \
-    -p device:=${DEVICE} \
-    ${CHECKPOINT_ARG}
-exit_code=\$?
-set -e
+# Make the three panes fit neatly.
+tmux select-layout -t "$SESSION:0" tiled
 
-echo
-echo '=============================================='
-echo \"prediction node exited with code \$exit_code.\"
-echo 'Keeping this tmux pane open for debugging.'
-echo 'Press Ctrl+D or type exit when finished.'
-echo '=============================================='
-exec bash -i
-"
+# Start focused on the interpolation pane.
+tmux select-pane -t "$SESSION:0.0"
 
-# Left pane: interpolation node.
-tmux new-session -d \
-    -s "${SESSION_NAME}" \
-    -n estimation \
-    "bash -lc $(printf '%q' "${INTERPOLATE_CMD}")"
-
-# Right pane: prediction/RNN node.
-tmux split-window -h \
-    -t "${SESSION_NAME}:0" \
-    "bash -lc $(printf '%q' "${PREDICTION_CMD}")"
+# Attach to the tmux session.
+tmux attach -t "$SESSION"

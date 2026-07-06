@@ -95,21 +95,21 @@ RUN mkdir -p /__w/ardupilot/ardupilot \
     && git config --system --add safe.directory /__w/ardupilot/ardupilot
 
 # Install ROS dependencies required by the mounted workspace packages.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-rosdep \
-    && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     python3-rosdep \
+#     && rm -rf /var/lib/apt/lists/*
 
-RUN rosdep init 2>/dev/null || true \
-    && rosdep update
+# RUN rosdep init 2>/dev/null || true \
+#     && rosdep update
 
-RUN source "${ROS_SETUP}" \
-    && rosdep install \
-        --rosdistro humble \
-        --from-paths /tmp/rosdep_src \
-        --ignore-src \
-        -r -y \
-    && dpkg -s ros-humble-geographic-msgs \
-    && rm -rf /tmp/rosdep_src
+# RUN source "${ROS_SETUP}" \
+#     && rosdep install \
+#         --rosdistro humble \
+#         --from-paths /tmp/rosdep_src \
+#         --ignore-src \
+#         -r -y \
+#     && dpkg -s ros-humble-geographic-msgs \
+#     && rm -rf /tmp/rosdep_src
 # ------------------------------------------------------------
 # Build Micro-XRCE-DDS-Gen
 # ------------------------------------------------------------
@@ -202,6 +202,11 @@ RUN mkdir -p "${MICRO_ROS_AGENT_WS}/src" \
 WORKDIR /workspace
 
 # Automatically source ROS 2 when opening an interactive shell.
-RUN echo 'source /opt/ros/humble/install/setup.bash' >> /root/.bashrc
-
+RUN printf '%s\n' \
+    'source /opt/ros/humble/setup.bash 2>/dev/null || true' \
+    'source /opt/ros/humble/install/setup.bash 2>/dev/null || true' \
+    'source /opt/micro_ros_agent_ws/install/setup.bash 2>/dev/null || true' \
+    'source /workspace/install/setup.bash 2>/dev/null || true' \
+    >> /root/.bashrc
+    
 CMD ["/bin/bash"]

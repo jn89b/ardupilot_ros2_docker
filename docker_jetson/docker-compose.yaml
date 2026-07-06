@@ -28,10 +28,10 @@ services:
     working_dir: /workspace
     volumes:
       - ..:/workspace
-      - ./useful_shell_scripts:/root/ardu_ws/useful_shell_scripts:rw
-      - ./flight_logs:/root/ardu_ws/flight_logs:rw
-      - ./traj_estimation_msgs:/root/ardu_ws/src/traj_estimation_msgs:rw
-      - ./traj_estimation:/root/ardu_ws/src/traj_estimation:rw
+      # - ../useful_shell_scripts:/root/workspace/useful_shell_scripts:rw
+      # - ../flight_logs:/root/workspace/flight_logs:rw
+      # - ../traj_estimation_msgs:/root/workspace/src/traj_estimation_msgs:rw
+      # - ../traj_estimation:/root/workspace/src/traj_estimation:rw
 
     command:
       - /bin/bash

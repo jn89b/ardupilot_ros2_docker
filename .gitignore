@@ -4,3 +4,10 @@ Micro-XRCE-DDS-Gen/*
 build/*
 install/*
 logs/*
+log/
+flight_logs/*
+
+# Nested dependency repositories / generated workspaces
+Micro-XRCE-DDS-Gen/
+ardupilot/
+traj_estimation_msgs/
