@@ -1,3 +1,6 @@
 ardupilot_dev_docker/*
 ardupilot/*
- Micro-XRCE-DDS-Gen/*
+Micro-XRCE-DDS-Gen/*
+build/*
+install/*
+logs/*

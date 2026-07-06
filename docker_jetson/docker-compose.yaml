@@ -16,6 +16,11 @@ services:
     network_mode: host
     ipc: host
 
+    # Comment this out if you are using a USB device
+    # devices:
+    #   - /dev/ttyACM0:/dev/ttyACM0
+    #   - /dev/ttyACM1:/dev/ttyACM1
+
     environment:
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       DDS_AGENT_PORT: ${DDS_AGENT_PORT:-2019}
@@ -23,12 +28,17 @@ services:
     working_dir: /workspace
     volumes:
       - ..:/workspace
+      - ./useful_shell_scripts:/root/ardu_ws/useful_shell_scripts:rw
+      - ./flight_logs:/root/ardu_ws/flight_logs:rw
+      - ./traj_estimation_msgs:/root/ardu_ws/src/traj_estimation_msgs:rw
+      - ./traj_estimation:/root/ardu_ws/src/traj_estimation:rw
 
     command:
       - /bin/bash
       - -lc
       - |
         set -e
+        source /opt/ros/humble/setup.bash
         source /opt/ros/humble/install/setup.bash
         source /opt/micro_ros_agent_ws/install/setup.bash
         exec ros2 run micro_ros_agent micro_ros_agent udp4 -p "$${DDS_AGENT_PORT}"
