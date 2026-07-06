@@ -490,3 +490,6 @@ For initial hardware validation:
 4. Change one DDS interval at a time.
 5. Bench-test before flight-testing.
 ```
+
+# This needs to be ran on the actual test and also make sure the docker compose file has that set too
+ros2 run micro_ros_agent micro_ros_agent serial   -D /dev/ttyACM1   -b 115200
