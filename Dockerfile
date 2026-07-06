@@ -33,7 +33,7 @@ WORKDIR /root/ardu_ws
 
 RUN mkdir -p src \
     && vcs import --recursive \
-        --input "https://raw.githubusercontent.com/ArduPilot/ardupilot/${ARDUPILOT_REF}/Tools/ros2/ros2.repos" \
+        --input "https://raw.githubusercontent.com/jn89b/ardupilot_dds_ros2/main/Tools/ros2/ros2.repos" \
         src
 
 RUN apt-get update \

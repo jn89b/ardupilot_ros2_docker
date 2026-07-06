@@ -9,7 +9,20 @@ services:
 
     # Linux only. This lets host SITL directly send AP_DDS to 127.0.0.1:2019.
     network_mode: host
+    
+    # Comment this out if you are using a USB device
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+      - /dev/ttyACM1:/dev/ttyACM1
 
+    # I am mounting this to just to add a new message to see if this works
+    volumes:
+      - ./useful_shell_scripts:/ardu_ws/useful_shell_scripts:rw
+      - ./flight_logs:/ardu_ws/flight_logs:rw
+      # - /home/justin/coding_projects/ros2_trajectory_docker/ardupilot:/workspace/ardupilot
+      - ./traj_estimation:/ardu_ws/src/traj_estimation:rw
+      - /home/justin/coding_projects/ros2_trajectory_docker/ardupilot/Tools/ros2/ardupilot_msgs:/ardu_ws/src/ardupilot_msgs:rw
+    
     environment:
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       DDS_AGENT_PORT: ${DDS_AGENT_PORT:-2019}

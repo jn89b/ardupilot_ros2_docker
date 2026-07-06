@@ -1,0 +1,3 @@
+[submodule "traj_estimation"]
+	path = traj_estimation
+	url = https://github.com/jn89b/traj_estimation.git
