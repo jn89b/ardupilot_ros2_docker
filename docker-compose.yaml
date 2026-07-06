@@ -11,17 +11,18 @@ services:
     network_mode: host
     
     # Comment this out if you are using a USB device
-    devices:
-      - /dev/ttyACM0:/dev/ttyACM0
-      - /dev/ttyACM1:/dev/ttyACM1
+    # devices:
+    #   - /dev/ttyACM0:/dev/ttyACM0
+    #   - /dev/ttyACM1:/dev/ttyACM1
 
     # I am mounting this to just to add a new message to see if this works
     volumes:
-      - ./useful_shell_scripts:/ardu_ws/useful_shell_scripts:rw
-      - ./flight_logs:/ardu_ws/flight_logs:rw
+      - ./useful_shell_scripts:/root/ardu_ws/useful_shell_scripts:rw
+      - ./flight_logs:/root/ardu_ws/flight_logs:rw
+      - ./traj_estimation_msgs:/root/ardu_ws/src/traj_estimation_msgs:rw
       # - /home/justin/coding_projects/ros2_trajectory_docker/ardupilot:/workspace/ardupilot
-      - ./traj_estimation:/ardu_ws/src/traj_estimation:rw
-      - /home/justin/coding_projects/ros2_trajectory_docker/ardupilot/Tools/ros2/ardupilot_msgs:/ardu_ws/src/ardupilot_msgs:rw
+      - ./traj_estimation:/root/ardu_ws/src/traj_estimation:rw
+      - /home/justin/coding_projects/ros2_trajectory_docker/ardupilot/Tools/ros2/ardupilot_msgs:/root/ardu_ws/src/ardupilot_msgs:rw
     
     environment:
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
